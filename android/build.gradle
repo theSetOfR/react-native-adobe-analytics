@@ -31,5 +31,5 @@ repositories {
 
 dependencies {
     compile 'com.facebook.react:react-native:+'
-    compile 'com.adobe.mobile:adobeMobileLibrary:4.14.0'
+    compile 'com.adobe.mobile:adobeMobileLibrary:4.17.0'
 }
