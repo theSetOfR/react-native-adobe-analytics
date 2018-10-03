@@ -26,16 +26,41 @@ public class RNAdobeAnalyticsModule extends ReactContextBaseJavaModule {
 
 	private final ReactApplicationContext reactContext;
 	private final Activity activity = getCurrentActivity();
+	private Map<String, Object> lifecycleData = null;
+	private Map<String, Object> acquisitionData = null;
 
 	private final LifecycleEventListener mLifecycleEventListener = new LifecycleEventListener() {
 		@Override
 		public void onHostResume() {
-			Log.d("RESUME", "LIFECYCLE");
-			Config.collectLifecycleData(activity);
+			Config.setDebugLogging(true);
+			//Sets Callback to allow lifecycle metric tracking
+			Config.registerAdobeDataCallback(new Config.AdobeDataCallback() {
+				@Override
+				public void call(Config.MobileDataEvent event, Map<String, Object> contextData) {
+					String adobeEventTag = "ADOBE_CALLBACK_EVENT";
+					switch (event) {
+						case MOBILE_EVENT_LIFECYCLE:
+							/* this event will fire when the Adobe sdk finishes processing lifecycle information */
+							lifecycleData = contextData;
+							break;
+						case MOBILE_EVENT_ACQUISITION_INSTALL:
+							/* this event will fire on the first launch of the application after install when installed via an Adobe acquisition link */
+							acquisitionData = contextData;
+							break;
+						case MOBILE_EVENT_ACQUISITION_LAUNCH:
+							/* this event will fire on the subsequent launches after the application was installed via an Adobe acquisition link */
+							acquisitionData = contextData;
+							break;
+					}
+				}
+			});
+			Log.d("BRIDGE", "RESUME LIFECYCLE");
+			Config.collectLifecycleData();
 		}
 
 		@Override
 		public void onHostPause() {
+			Config.setDebugLogging(true);
 			Config.pauseCollectingLifecycleData();
 		}
 
@@ -64,6 +89,7 @@ public class RNAdobeAnalyticsModule extends ReactContextBaseJavaModule {
 
 	@ReactMethod
 	public void trackState(String state, ReadableMap contextData) {
+		Config.setDebugLogging(true);
 		Map<String, Object> contextMap = convertReadableMapToHashMap(contextData);
 		Log.i("RN-adobe-analytics", "####### trackState ####### " + state);
 		Analytics.trackState(state, contextMap);
@@ -71,38 +97,11 @@ public class RNAdobeAnalyticsModule extends ReactContextBaseJavaModule {
 
 	@ReactMethod
 	public void trackAction(String action, ReadableMap contextData) {
+		Config.setDebugLogging(true);
 		Map<String, Object> contextMap = convertReadableMapToHashMap(contextData);
 		Log.i("RN-adobe-analytics", "####### trackAction ####### " + action);
 		Analytics.trackAction(action, contextMap);
 	}
-
-//Adding timed action events - start, update and end. Also get Marketing cloud ID function
-
-
-	@ReactMethod
-	public void trackTimedActionStart(String action, ReadableMap contextData) {
-		Map<String, Object> contextMap = convertReadableMapToHashMap(contextData);
-		Log.i("RN-adobe-analytics", "####### trackTimesActionStart ####### " + action);
-		Analytics.trackTimedActionStart(action, contextMap);
-	}
-
-
-
-	@ReactMethod
-	public void trackTimedActionUpdate(String action, ReadableMap contextData) {
-		Map<String, Object> contextMap = convertReadableMapToHashMap(contextData);
-		Log.i("RN-adobe-analytics", "####### trackTimesActionUpdate ####### " + action);
-		Analytics.trackTimedActionUpdate(action, contextMap);
-	}
-
-	@ReactMethod
-	public void trackTimedActionEnd(String action) {
-		Map<String, Object> contextMap = convertReadableMapToHashMap(contextData);
-		Log.i("RN-adobe-analytics", "####### trackTimesActionEnd ####### " + action);
-		Analytics.trackTimedActionEnd(action,  new Analytics.TimedActionBlock<Boolean>());
-	}
-
-//End of updates
 
 	@ReactMethod
 	public void trackVideo(String action, ReadableMap settings) {
